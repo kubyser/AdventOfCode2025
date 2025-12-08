@@ -2,7 +2,6 @@ import math
 
 data = [s.removesuffix("\n") for s in open("resources/day8_input.txt", "r")]
 coords = [(int(s.split(',')[0]), int(s.split(',')[1]), int(s.split(',')[2])) for s in data]
-print(coords)
 connections = {}
 circuits = {}
 circMap = {}
@@ -19,13 +18,19 @@ for a,first in enumerate(coords[:-1]):
                          math.pow(first[2]-second[2], 2))
         distances.append((dist, first, second))
 distances.sort(key = lambda x: x[0], reverse=True)
+i = 0
 #for i in range(numIterations):
 while True:
-    #print(f"iteration {i}")
+#    print(f"iteration {i}")
     minD = distances.pop()
     minPair = (minD[1], minD[2])
     first, second = minPair
     connections[first].add(second)
+    if (i := i+1) == numIterations:
+        sizes = [len(circuits[c]) for c in circuits]
+        sizes.sort()
+        res = math.prod(sizes[-3:])
+        print(f"Part 1 res: {res}")
     if circMap[first] == circMap[second]:
         continue
     newCirc = circMap[first]
@@ -38,9 +43,3 @@ while True:
         res = first[0] * second[0]
         print(f"Part 2 res: {res}")
         exit(1)
-for c in circuits:
-    print(f"{len(circuits[c])}: {circuits[c]}")
-sizes = [len(circuits[c]) for c in circuits]
-sizes.sort()
-res = math.prod(sizes[-3:])
-print(res)
