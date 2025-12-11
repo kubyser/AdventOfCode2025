@@ -46,7 +46,7 @@ def pushButtonJolts(before, button):
             after[i] = before[i]
     return after
 
-def generateCombinations(sum, buttons, usedButtons = {}):
+def generateCombinations(target, sum, buttons, usedButtons = {}):
     b2 = set(buttons)
     b = b2.pop()
     if len(b2) == 0:
@@ -57,7 +57,7 @@ def generateCombinations(sum, buttons, usedButtons = {}):
     for i in range(sum+1):
         ub2 = usedButtons.copy()
         ub2[b] = i
-        newCombinations = generateCombinations(sum-i, b2, ub2)
+        newCombinations = generateCombinations(target, sum-i, b2, ub2)
         allNewCombinations += newCombinations
     return allNewCombinations
 
@@ -72,12 +72,16 @@ def calculateNewTarget(target, combination):
 
 
 @lru_cache
-def solveTask(target, buttons, first=True, previousCost = 0, currentMinCost = None): #, curCost=0, curMinCost=None):
+def solveTask(target, buttons, level=0, previousCost = 0, currentMinCost = None): #, curCost=0, curMinCost=None):
+    indent = " "*level*3
+    logfile.write(f"{indent}==== TASK START: L: {level} Target: {target}\n")
     if all(x == 0 for x in target):
+        logfile.write(f"{indent}==== L: {level} Answer found!\n")
         return 0
     validButtons = [b for b in buttons if not any(target[i] == 0 for i in b)]
     targetValid = all(any(i in b for b in validButtons) for i,x in enumerate(target) if x != 0)
     if not targetValid:
+        logfile.write(f"{indent}==== L: {level} Target INVALID\n")
         return None
     #maxItem = max([x for x in target])
     #if curMinCost is not None and curCost + maxItem >= curMinCost:
@@ -87,26 +91,37 @@ def solveTask(target, buttons, first=True, previousCost = 0, currentMinCost = No
     eligibleButtons = [b for b in buttons if nPos in b and not any(target[i] == 0 for i in b)]
     #print(f"target {target} MinItem = {minItem} eligible buttons {eligibleButtons}")
     if len(eligibleButtons) == 0:
+        logfile.write(f"{indent}==== L: {level} NO ELIGIBLE BUTTONS\n")
         return None
-    combinations = generateCombinations(minItem, eligibleButtons)
+    combinations = generateCombinations(target, minItem, eligibleButtons)
     numCombinations = len(combinations)
     cycleSize = numCombinations // 500
     counter = 0
     minCost = None
-    for nc, comb in enumerate(combinations):
+    if level==0:
+        startCombNum = 13800
+    else:
+        startCombNum = 0
+    for nc, comb in enumerate(combinations[startCombNum:]):
         newTarget = calculateNewTarget(target, comb)
         if currentMinCost is not None:
             maxItem = max([x for x in newTarget])
             if previousCost + minItem + maxItem >= currentMinCost:
+                logfile.write(f"{indent}L: {level} COST TOO HIGH Comb: {nc+startCombNum}/{numCombinations} Target: {newTarget}, MinCost: {minCost}, Combination: {comb}\n")
                 continue
-        cost = solveTask(tuple(newTarget), buttons, False, previousCost+minItem, currentMinCost) #, curCost+minItem, minCost)
-        if first:
-            if (counter := counter+1) == cycleSize:
-                print(f"{datetime.now()}  Progress {round(nc/numCombinations*100, 2)}% Trying combination {nc}/{numCombinations} target {newTarget}, cur min cost = {minCost}")
-                counter = 0
+        print(f"{indent}STARTING: L: {level} Comb: {nc+startCombNum}/{numCombinations} Target: {newTarget}, MinCost: {minCost}, Combination: {comb}")
+        logfile.write(f"{indent}STARTING: L: {level} Comb: {nc+startCombNum}/{numCombinations} Target: {newTarget}, MinCost: {minCost}, Combination: {comb}\n")
+        cost = solveTask(tuple(newTarget), buttons, level+1, previousCost+minItem, currentMinCost) #, curCost+minItem, minCost)
+        if True: #level<2:
+            print(f"{indent}END: L: {level} Comb: {nc+startCombNum}/{numCombinations} Target: {newTarget}, Cost: {cost}, MinCost: {minCost}, Combination: {comb}")
+            logfile.write(f"{indent}END: L: {level} Comb: {nc+startCombNum}/{numCombinations} Target: {newTarget}, Cost: {cost}, MinCost: {minCost}, Combination: {comb}\n")
+            if level == 0:
+                if (counter := counter+1) == cycleSize:
+                    print(f"{datetime.now()}  Progress {round(nc/numCombinations*100, 2)}% Trying combination {nc}/{numCombinations} target {newTarget}, cur min cost = {minCost}")
+                    counter = 0
         if cost is not None and (minCost is None or cost+minItem < minCost):
             minCost = cost+minItem
-            if first:
+            if level==0:
                 currentMinCost = minCost
     if minCost is None:
         return None
@@ -122,6 +137,10 @@ for s in data:
     tasks.append(task)
 totalPushes = 0
 
+f = open("day10_result.txt", "a")
+f.write(f"{datetime.now()}============== START ==============")
+f.close()
+logfile = open("day10_log.txt", "w")
 for taskNum, task in enumerate(tasks):
     target = task[2]
     buttons = task[1]
