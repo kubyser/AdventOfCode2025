@@ -1,4 +1,5 @@
 from copy import deepcopy
+from datetime import datetime
 from functools import lru_cache
 
 
@@ -71,7 +72,7 @@ def calculateNewTarget(target, combination):
 
 
 @lru_cache
-def solveTask(target, buttons, first=True): #, curCost=0, curMinCost=None):
+def solveTask(target, buttons, first=True, previousCost = 0, currentMinCost = None): #, curCost=0, curMinCost=None):
     if all(x == 0 for x in target):
         return 0
     validButtons = [b for b in buttons if not any(target[i] == 0 for i in b)]
@@ -94,17 +95,19 @@ def solveTask(target, buttons, first=True): #, curCost=0, curMinCost=None):
     minCost = None
     for nc, comb in enumerate(combinations):
         newTarget = calculateNewTarget(target, comb)
-        if first:
-            maxItem = max([x for x in target])
-            if minCost is not None and minItem+maxItem >= minCost:
+        if currentMinCost is not None:
+            maxItem = max([x for x in newTarget])
+            if previousCost + minItem + maxItem >= currentMinCost:
                 continue
-        cost = solveTask(tuple(newTarget), buttons, False) #, curCost+minItem, minCost)
+        cost = solveTask(tuple(newTarget), buttons, False, previousCost+minItem, currentMinCost) #, curCost+minItem, minCost)
         if first:
             if (counter := counter+1) == cycleSize:
-                print(f"Progress {round(nc/numCombinations*100, 2)}% Trying combination {nc}/{numCombinations} target {newTarget}, cur min cost = {minCost}")
+                print(f"{datetime.now()}  Progress {round(nc/numCombinations*100, 2)}% Trying combination {nc}/{numCombinations} target {newTarget}, cur min cost = {minCost}")
                 counter = 0
         if cost is not None and (minCost is None or cost+minItem < minCost):
             minCost = cost+minItem
+            if first:
+                currentMinCost = minCost
     if minCost is None:
         return None
     return minCost
@@ -119,12 +122,16 @@ for s in data:
     tasks.append(task)
 totalPushes = 0
 
-for taskNum, task in enumerate(tasks[1:]):
+for taskNum, task in enumerate(tasks):
     target = task[2]
     buttons = task[1]
+    print(f"{datetime.now()}========= Starting task {taskNum} target {target}")
     minPushes = solveTask(target, buttons)
     totalPushes += minPushes
-    print(f"Task {taskNum} Min pushes: {minPushes}")
+    print(f"{datetime.now()}  Task {taskNum} Min pushes: {minPushes}")
+    f = open("day10_result.txt", "a")
+    f.write(f"{datetime.now()} Task {taskNum} Min pushes: {minPushes}\n")
+    f.close()
 
     #exit(0)
 print(f"Total pushes: {totalPushes}")
