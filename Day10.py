@@ -45,18 +45,24 @@ def pushButtonJolts(before, button):
             after[i] = before[i]
     return after
 
-def generateCombinations(sum, buttons, usedButtons = {}):
+def generateCombinations(target, sum, buttons, usedButtons = {}):
     b2 = set(buttons)
     b = b2.pop()
     if len(b2) == 0:
         ub2 = usedButtons.copy()
         ub2[b] = sum
+        newTarget = calculateNewTarget(target, ub2)
+        if any(x<0 for x in newTarget):
+            return []
         return [ub2]
     allNewCombinations = []
     for i in range(sum+1):
         ub2 = usedButtons.copy()
         ub2[b] = i
-        newCombinations = generateCombinations(sum-i, b2, ub2)
+        newTarget = calculateNewTarget(target, ub2)
+        if any(x<0 for x in newTarget):
+            break
+        newCombinations = generateCombinations(target, sum-i, b2, ub2)
         allNewCombinations += newCombinations
     return allNewCombinations
 
@@ -78,33 +84,36 @@ def solveTask(target, buttons, first=True): #, curCost=0, curMinCost=None):
     targetValid = all(any(i in b for b in validButtons) for i,x in enumerate(target) if x != 0)
     if not targetValid:
         return None
-    #maxItem = max([x for x in target])
+    maxItem = max([x for x in target])
     #if curMinCost is not None and curCost + maxItem >= curMinCost:
     #    return None
-    minItem = min([x for x in target if x != 0])
-    nPos = list(target).index(minItem)
+    #minItem = min([x for x in target if x != 0])
+    nPos = list(target).index(maxItem)
     eligibleButtons = [b for b in buttons if nPos in b and not any(target[i] == 0 for i in b)]
     #print(f"target {target} MinItem = {minItem} eligible buttons {eligibleButtons}")
     if len(eligibleButtons) == 0:
         return None
-    combinations = generateCombinations(minItem, eligibleButtons)
+    combinations = generateCombinations(target, maxItem, eligibleButtons)
     numCombinations = len(combinations)
+    print(f"Combinations {numCombinations}")
     cycleSize = numCombinations // 500
     counter = 0
     minCost = None
     for nc, comb in enumerate(combinations):
         newTarget = calculateNewTarget(target, comb)
-        if first:
-            maxItem = max([x for x in target])
-            if minCost is not None and minItem+maxItem >= minCost:
-                continue
+        if any(x<0 for x in newTarget):
+            continue
+        #if first:
+        #    maxItem = max([x for x in target])
+        #    if minCost is not None and minItem+maxItem >= minCost:
+        #        continue
         cost = solveTask(tuple(newTarget), buttons, False) #, curCost+minItem, minCost)
         if first:
             if (counter := counter+1) == cycleSize:
                 print(f"Progress {round(nc/numCombinations*100, 2)}% Trying combination {nc}/{numCombinations} target {newTarget}, cur min cost = {minCost}")
                 counter = 0
-        if cost is not None and (minCost is None or cost+minItem < minCost):
-            minCost = cost+minItem
+        if cost is not None and (minCost is None or cost+maxItem < minCost):
+            minCost = cost+maxItem
     if minCost is None:
         return None
     return minCost
@@ -119,7 +128,7 @@ for s in data:
     tasks.append(task)
 totalPushes = 0
 
-for taskNum, task in enumerate(tasks[1:]):
+for taskNum, task in enumerate(tasks):
     target = task[2]
     buttons = task[1]
     minPushes = solveTask(target, buttons)
