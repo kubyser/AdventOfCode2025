@@ -4,13 +4,15 @@ def reduce(equations):
     while True:
         reduced = False
         restart = False
-        for i, (elements, val) in enumerate(equations):
-            for j, (testElements, testVal) in enumerate(equations):
+        for i, (elements, val, source) in enumerate(equations):
+            for j, (testElements, testVal, testSource) in enumerate(equations):
                 if j == i:
                     continue
                 if any(x not in testElements for x in elements):
                     continue
                 if val > testVal:
+                    return None
+                if elements == testElements and val != testVal:
                     return None
                 reduced = True
                 testElements -= elements
@@ -19,7 +21,7 @@ def reduce(equations):
                     restart = True
                     break
                 else:
-                    equations[j] = (testElements, testVal - val)
+                    equations[j] = (testElements, testVal - val, "UPD")
             if restart:
                 break
         if not reduced:
@@ -43,9 +45,9 @@ def solve(equations):
         break
     #print(minEq, firstVar)
     maxValue = min([x[1] for x in equations if firstVar in x[0]])
-    equations.append(({firstVar}, None))
+    equations.append(({firstVar}, None, "NEW"))
     for newValue in range(maxValue+1):
-        equations[-1] = ({firstVar}, newValue)
+        equations[-1] = ({firstVar}, newValue, "NEW")
         solve(equations)
     #print("Tried all")
     return equations
@@ -65,13 +67,13 @@ for s in data:
         buttons.append(button)
     tasks.append((target, buttons))
 totalSum = 0
-for nt, (target, buttons) in enumerate(tasks):
+for nt, (target, buttons) in enumerate(tasks): #[7:8]):
     print(f"========= Task {nt} ============")
     minValue = None
     equations = []
     for pos,x in enumerate(target):
         elements = {i for i, b in enumerate(buttons) if pos in b}
-        equations.append((elements, x))
+        equations.append((elements, x, "ORIG"))
     equations = solve(equations)
     print(f"task {nt} completed, minValue={minValue}")
     totalSum += minValue
